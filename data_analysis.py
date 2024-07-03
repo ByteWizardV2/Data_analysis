@@ -10,7 +10,7 @@ data['TotalSales'] = data['SALES']
 missing_values = data.isnull().sum()
 missing_values, data.dtypes
 
-# Extract quarter, month, and year from ORDERDATE
+
 data['QUARTER'] = data['ORDERDATE'].dt.quarter
 data['MONTH'] = data['ORDERDATE'].dt.month
 data['YEAR'] = data['ORDERDATE'].dt.year
@@ -75,7 +75,6 @@ plt.gca().invert_yaxis()
 plt.grid(True)
 plt.show()
 
-# Display dataframes for inspection
 print("Sales per Quarter:\n", sales_per_quarter)
 print("Sales per Month:\n", sales_per_month)
 print("Sales per Year:\n", sales_per_year)
