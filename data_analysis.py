@@ -5,52 +5,79 @@ import seaborn as sns
 import plotly.express as px
 
 data = pd.read_csv('sales_data_sample.csv', encoding='Windows-1252')
-data['ORDERDATE'] = pd.to_datetime(data['ORDERDATE'])
+data['ORDERDATE'] = pd.to_datetime(data['ORDERDATE'], errors='coerce')
 data['TotalSales'] = data['SALES']
+missing_values = data.isnull().sum()
+missing_values, data.dtypes
 
+# Extract quarter, month, and year from ORDERDATE
+data['QUARTER'] = data['ORDERDATE'].dt.quarter
+data['MONTH'] = data['ORDERDATE'].dt.month
+data['YEAR'] = data['ORDERDATE'].dt.year
 
-def analyze_data(choice, data, order_number=None):
-    if choice == 1:
-        # Total sales by order number
-        summary = data.groupby('ORDERNUMBER')['TotalSales'].sum().reset_index()
-        fig = px.bar(summary, x='ORDERNUMBER', y='TotalSales', title='Total Sales by Order Number')
-    elif choice == 2:
-        # Sales over time (monthly)
-        summary = data.groupby(data['ORDERDATE'].dt.to_period('M'))['TotalSales'].sum().reset_index()
-        summary['ORDERDATE'] = summary['ORDERDATE'].dt.strftime('%Y-%m')
-        fig = px.line(summary, x='ORDERDATE', y='TotalSales', title='Sales Over Time (Monthly)')
-    elif choice == 3 and order_number is not None:
-        # Performance of a specific order over time 
-        print("Enter the ORDER NUMBER you want to analyze.")
-        order_number = input("Enter the order number: ")
-        specific_order_data = data[data['ORDERNUMBER'] == int(order_number)]
-        if specific_order_data.empty:
-            print("Order number not found.") 
-            return
-        summary = specific_order_data.groupby(specific_order_data['ORDERDATE'].dt.to_period('M'))['TotalSales'].sum().reset_index()
-        summary['ORDERDATE'] = summary['ORDERDATE'].dt.strftime('%Y-%m')
-        fig = px.line(summary, x='ORDERDATE', y='TotalSales', title=f'Sales Trend for Order {order_number}')
-    elif choice == 4:
-        # Seasonal Sales Analysis
-        summary = data.groupby('MONTH_ID')['TotalSales'].sum().reset_index()
-        fig = px.bar(summary, x='MONTH_ID', y='TotalSales', title='Seasonal Sales Analysis', labels={'MONTH_ID': 'Month', 'TotalSales': 'Total Sales'})
-    else:
-        print("Invalid choice. Please select a valid option.")
-        return
-    
-    fig.show() 
+# Calculate total sales per quarter, month, and year
+sales_per_quarter = data.groupby(['YEAR', 'QUARTER'])['TotalSales'].sum().reset_index()
+sales_per_month = data.groupby(['YEAR', 'MONTH'])['TotalSales'].sum().reset_index()
+sales_per_year = data.groupby('YEAR')['TotalSales'].sum().reset_index()
 
-# User interaction for selecting analysis type   
-print("Select the type of analysis you'd like to perform:")
-print("1. Total Sales by Order Number")
-print("2. Sales Over Time (Monthly)")
-print("3. Performance of a Specific Order Over Time")
-print("4. Seasonal Sales Analysis")
-print("5. Individual Sales Analysis")
-choice = int(input("Enter your choice (1-4): "))
-order_number = None
-if choice == 3:
-    order_number = int(input("Enter the order number: "))
+# Plotting total sales per quarter
+plt.figure(figsize=(10, 6))
+plt.plot(sales_per_quarter['YEAR'].astype(str) + '-Q' + sales_per_quarter['QUARTER'].astype(str), sales_per_quarter['TotalSales'], marker='o')
+plt.title('Total Sales per Quarter')
+plt.xlabel('Quarter')
+plt.ylabel('Sales')
+plt.xticks(rotation=45)
+plt.grid(True)
+plt.show()
 
-# Perform the analysis
-analyze_data(choice, data, order_number)
+# Plotting total sales per month
+plt.figure(figsize=(10, 6))
+plt.plot(sales_per_month['YEAR'].astype(str) + '-' + sales_per_month['MONTH'].astype(str).str.zfill(2), sales_per_month['TotalSales'], marker='o')
+plt.title('Total Sales per Month')
+plt.xlabel('Month')
+plt.ylabel('Sales')
+plt.xticks(rotation=90)
+plt.grid(True)
+plt.show()
+
+# Plotting total sales per year
+plt.figure(figsize=(10, 6))
+plt.bar(sales_per_year['YEAR'].astype(str), sales_per_year['TotalSales'])
+plt.title('Total Sales per Year')
+plt.xlabel('Year')
+plt.ylabel('Sales')
+plt.grid(True)
+plt.show()
+
+# Top 10 products by total sales
+top_products = data.groupby('PRODUCTCODE')['TotalSales'].sum().sort_values(ascending=False).head(10).reset_index()
+
+# Top-performing product lines
+top_product_lines = data.groupby('PRODUCTLINE')['TotalSales'].sum().sort_values(ascending=False).reset_index()
+
+# Plotting top 10 products by total sales
+plt.figure(figsize=(12, 6))
+plt.barh(top_products['PRODUCTCODE'], top_products['TotalSales'], color='skyblue')
+plt.title('Top 10 Products by Total Sales')
+plt.xlabel('Sales')
+plt.ylabel('Product Code')
+plt.gca().invert_yaxis()
+plt.grid(True)
+plt.show()
+
+# Plotting top-performing product lines
+plt.figure(figsize=(12, 6))
+plt.barh(top_product_lines['PRODUCTLINE'], top_product_lines['TotalSales'], color='skyblue')
+plt.title('Top-Performing Product Lines')
+plt.xlabel('Sales')
+plt.ylabel('Product Line')
+plt.gca().invert_yaxis()
+plt.grid(True)
+plt.show()
+
+# Display dataframes for inspection
+print("Sales per Quarter:\n", sales_per_quarter)
+print("Sales per Month:\n", sales_per_month)
+print("Sales per Year:\n", sales_per_year)
+print("Top 10 Products by Total Sales:\n", top_products)
+print("Top-Performing Product Lines:\n", top_product_lines)
